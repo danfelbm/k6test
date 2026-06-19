@@ -1,0 +1,10 @@
+# Datos de entrada (pesados / con documentos de testigos) — regenerables, no se versionan
+testigos_stress_100000.csv
+*.csv
+
+# Reportes y logs generados por k6
+report-*.html
+*.log
+
+# Sistema
+.DS_Store
