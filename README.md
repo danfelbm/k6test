@@ -34,20 +34,24 @@ Generador: una sola máquina (Mac, una IP). 2 imágenes por evidencia.
 | Escenario | VUs máx | Evidencias creadas | checks OK | HTTP fallidos | p95 latencia req | p95 duración iteración | Veredicto |
 |---|---:|---:|---:|---:|---:|---:|---|
 | Smoke | 1 | 1 | 100% | 0% | 1.52 s | 6.9 s | Flujo validado ✓ |
-| Carga ligera | 50 | 1.560 | 99.76% | 0.30% | **1.05 s** | 5.7 s | Holgado ✓ |
-| Breakpoint | 300 | 4.282 | 97.26% | 2.59% | 5.95 s | **26.9 s** | Al borde ⚠ |
-| Breakpoint | 500 | _(en curso)_ | | | | | |
+| Carga ligera | 50 | 1.560 | 99.76% | 0.30% | 1.05 s | 5.7 s | Holgado ✓ |
+| Breakpoint | 300 | 4.282 | 97.26% | 2.59% | 5.95 s | 26.9 s | Al borde ⚠ |
+| Breakpoint | 500 | 3.965 | 96.43% | 3.33% | 8.10 s | 35.3 s | Punto de quiebre 🔴 |
 
-Throughput observado: ~6,3 evidencias/s @ 50 VUs → ~8,9 evidencias/s @ 300 VUs (ya saturándose).
+Throughput observado: ~6,3 evid/s @ 50 VUs → ~8,9 evid/s @ 300 VUs → ~8,4 evid/s @ 500 VUs.
+El throughput **se estanca en ~8–9 evidencias/s (~60 req/s)**: meter más VUs ya no procesa más, solo encola.
 
 ### Lectura
 
-- El flujo **funciona de punta a punta** (login passwordless → adjuntar → enviar → confirmar).
+- El flujo **funciona de punta a punta** (login passwordless → adjuntar → enviar → confirmar) en todos los niveles.
 - Hasta **~50 VUs el sistema va holgado** (p95 ~1 s, <0,5% error).
-- Hacia **~300 VUs concurrentes desde una sola IP** empieza a degradarse: la latencia por iteración sube a
-  decenas de segundos y el login arroja `429` (rate limit ~50/seg por IP). Ese rate-limit, más el ancho de banda
-  de bajada (las props de `mi-testigo` son pesadas), son el primer cuello **del generador/throttle**, no
-  necesariamente de la capacidad de procesar evidencias.
-- Para empujar más allá hace falta **multi-IP o k6 Cloud** (reparte el throttle de login entre orígenes).
+- Entre **300 y 500 VUs el throughput se aplana** (~8–9 evid/s) mientras la latencia se dispara
+  (iteración p95 27 s → 35 s, máx 1 min). Es la firma clásica de **saturación**: las peticiones se encolan.
+- **Punto de quiebre ≈ 500 VUs concurrentes** (desde una sola IP): la corrida se autoabortó al cruzar p95 de
+  latencia 8 s. Importante: el sistema **no devuelve errores masivos** (fallos 3,3 %), se vuelve **lento**.
+- Cuellos dominantes desde una sola máquina/IP: el **rate-limit de login** (~50/seg → `429`) y el **ancho de banda
+  de bajada** (las props de `mi-testigo` son pesadas, ~3 GB recibidos por corrida). Por eso este techo refleja el
+  límite **del generador + throttle**, no necesariamente la capacidad real del backend.
+- Para medir el límite real del servidor hace falta **multi-IP o k6 Cloud** (reparte el throttle de login entre orígenes).
 
 Los reportes HTML por corrida quedan como `report-*.html` (gitignored).
