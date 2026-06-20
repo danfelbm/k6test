@@ -37,9 +37,22 @@ Generador: una sola máquina (Mac, una IP). 2 imágenes por evidencia.
 | Carga ligera | 50 | 1.560 | 99.76% | 0.30% | 1.05 s | 5.7 s | Holgado ✓ |
 | Breakpoint | 300 | 4.282 | 97.26% | 2.59% | 5.95 s | 26.9 s | Al borde ⚠ |
 | Breakpoint | 500 | 3.965 | 96.43% | 3.33% | 8.10 s | 35.3 s | Punto de quiebre 🔴 |
+| Breakpoint (post-escalado H) | 500 | 3.603 | 99.75% | 0.31% | 8.07 s | 33.6 s | Fiable, mismo techo ⚖️ |
 
 Throughput observado: ~6,3 evid/s @ 50 VUs → ~8,9 evid/s @ 300 VUs → ~8,4 evid/s @ 500 VUs.
 El throughput **se estanca en ~8–9 evidencias/s (~60 req/s)**: meter más VUs ya no procesa más, solo encola.
+
+### Post-escalado horizontal (capa de aplicación)
+
+Se repitió la corrida de 500 VUs tras escalar horizontalmente los nodos app:
+
+- **Fiabilidad: mejoró fuerte.** HTTP fallidos 3,33% → 0,31%; checks 96,4% → 99,75%. Los fallos de login bajo
+  carga (saturación de PHP-FPM) **desaparecieron** (0 de ~440).
+- **Velocidad: sin cambio.** p95 latencia 8,10 → 8,07 s; throughput ~8,4 → ~8,0 evid/s; volvió a abortar al cruzar 8 s.
+- **Conclusión:** el escalado de los nodos app **resolvió los errores pero no el techo de throughput**. Como sumar
+  nodos no subió la velocidad, el cuello no está en esa capa: apunta a un **recurso compartido** que no escala
+  horizontalmente (BD primary / storage / locks del `store`) o al **generador** (uplink de la Mac saturado por los
+  uploads). Pendiente: desglosar latencia por etapa (o repetir con 1 imagen) para confirmar cuál.
 
 ### Lectura
 
