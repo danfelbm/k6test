@@ -13,6 +13,9 @@ import { tomarTestigoUnico } from './lib/data.js';
 
 const RATE = parseInt(__ENV.RATE || '6', 10); // iteraciones (evidencias) por segundo
 const DURATION = __ENV.DURATION || '10m'; // cuánto sostener la carga
+// Con think time, VUs ≈ rate × latencia (~19s). Configurable por env para no quedarse sin VUs.
+const MAX_VUS = parseInt(__ENV.MAX_VUS || '1500', 10);
+const PRE_VUS = parseInt(__ENV.PRE_VUS || String(Math.min(MAX_VUS, Math.max(50, RATE * 20))), 10);
 
 export const options = {
     scenarios: {
@@ -23,8 +26,8 @@ export const options = {
             duration: DURATION,
             // VUs pre-asignados para arrancar de inmediato a la tasa objetivo, con colchón
             // por si la latencia por iteración sube (ley de Little: VUs ≈ rate × latencia).
-            preAllocatedVUs: 40,
-            maxVUs: 120,
+            preAllocatedVUs: PRE_VUS,
+            maxVUs: MAX_VUS,
         },
     },
     // Umbrales informativos, SIN abortOnFail: la corrida debe completar toda la duración
